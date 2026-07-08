@@ -1,149 +1,112 @@
 @echo off
-title Limpeza Completa do Windows
+title Windows Cleaner Pro v2.0
 color 0A
 
-echo ==========================================================
-echo             LIMPEZA COMPLETA DO WINDOWS
-echo ==========================================================
-echo.
-
-:: Verifica se esta como Administrador
+:: Verifica administrador
 net session >nul 2>&1
 if %errorlevel% neq 0 (
-    echo.
-    echo ERRO: Execute este script como Administrador.
-    echo.
-    pause
-    exit
+ echo Execute este script como Administrador.
+ pause
+ exit /b
 )
 
-:: ----------------------------------------------------------
-:: WINDOWS TEMP
-:: ----------------------------------------------------------
+:menu
+cls
+echo ===========================================
+echo         WINDOWS CLEANER PRO v2.0
+echo ===========================================
+echo.
+echo 1 - Limpeza Rapida
+echo 2 - Limpeza Completa
+echo 3 - Limpeza Profunda
+echo 4 - Sair
+echo.
+set /p op=Escolha uma opcao: 
 
-echo [1/18] Limpando C:\Windows\Temp...
-del /f /s /q "%windir%\Temp\*.*" 2>nul
-for /d %%i in ("%windir%\Temp\*") do rd /s /q "%%i" 2>nul
+if "%op%"=="1" goto rapida
+if "%op%"=="2" goto completa
+if "%op%"=="3" goto profunda
+if "%op%"=="4" exit
+goto menu
 
-echo [2/18] Limpando Temp do Usuario...
-del /f /s /q "%TEMP%\*.*" 2>nul
+:rapida
+call :temp
+call :dns
+call :thumbs
+call :recycle
+goto fim
+
+:completa
+call :rapida
+call :wu
+call :delivery
+call :browsers
+call :store
+goto fim
+
+:profunda
+call :completa
+call :prefetch
+call :defender
+DISM /Online /Cleanup-Image /StartComponentCleanup
+choice /M "Executar ResetBase (nao sera possivel remover atualizacoes antigas)?"
+if errorlevel 2 goto fim
+DISM /Online /Cleanup-Image /StartComponentCleanup /ResetBase
+goto fim
+
+:temp
+echo Limpando temporarios...
+del /f /s /q "%TEMP%\*" 2>nul
 for /d %%i in ("%TEMP%\*") do rd /s /q "%%i" 2>nul
+del /f /s /q "%windir%\Temp\*" 2>nul
+for /d %%i in ("%windir%\Temp\*") do rd /s /q "%%i" 2>nul
+exit /b
 
-echo [3/18] Limpando Local Temp...
-del /f /s /q "%LOCALAPPDATA%\Temp\*.*" 2>nul
-for /d %%i in ("%LOCALAPPDATA%\Temp\*") do rd /s /q "%%i" 2>nul
+:dns
+ipconfig /flushdns
+exit /b
 
-echo [4/18] Limpando Arquivos Recentes...
-del /f /s /q "%APPDATA%\Microsoft\Windows\Recent\*.*" 2>nul
+:thumbs
+del /f /s /q "%LocalAppData%\Microsoft\Windows\Explorer\thumbcache*" 2>nul
+exit /b
 
-:: ----------------------------------------------------------
-:: DNS
-:: ----------------------------------------------------------
+:recycle
+powershell -NoProfile -Command "Clear-RecycleBin -Force" 2>nul
+exit /b
 
-echo [5/18] Limpando Cache DNS...
-ipconfig /flushdns >nul
-
-:: ----------------------------------------------------------
-:: WINDOWS UPDATE
-:: ----------------------------------------------------------
-
-echo [6/18] Limpando Windows Update...
+:wu
 net stop wuauserv >nul 2>&1
 net stop bits >nul 2>&1
-
-rd /s /q "%windir%\SoftwareDistribution\Download" 2>nul
-mkdir "%windir%\SoftwareDistribution\Download"
-
-rd /s /q "%windir%\SoftwareDistribution\DeliveryOptimization" 2>nul
-mkdir "%windir%\SoftwareDistribution\DeliveryOptimization"
-
+del /f /s /q "%windir%\SoftwareDistribution\Download\*" 2>nul
 net start bits >nul 2>&1
 net start wuauserv >nul 2>&1
+exit /b
 
-:: ----------------------------------------------------------
-:: DELIVERY OPTIMIZATION
-:: ----------------------------------------------------------
+:delivery
+del /f /s /q "%ProgramData%\Microsoft\Windows\DeliveryOptimization\Cache\*" 2>nul
+exit /b
 
-echo [7/18] Limpando Delivery Optimization...
-rd /s /q "%ProgramData%\Microsoft\Windows\DeliveryOptimization" 2>nul
-mkdir "%ProgramData%\Microsoft\Windows\DeliveryOptimization"
+:browsers
+rd /s /q "%LocalAppData%\Google\Chrome\User Data\Default\Cache" 2>nul
+rd /s /q "%LocalAppData%\Microsoft\Edge\User Data\Default\Cache" 2>nul
+for /d %%i in ("%APPDATA%\Mozilla\Firefox\Profiles\*") do rd /s /q "%%i\cache2" 2>nul
+exit /b
 
-:: ----------------------------------------------------------
-:: LOGS
-:: ----------------------------------------------------------
+:store
+wsreset.exe
+exit /b
 
-echo [8/18] Limpando Logs do Windows...
-del /f /s /q "%windir%\Logs\*.*" 2>nul
+:prefetch
+del /f /s /q "%windir%\Prefetch\*" 2>nul
+exit /b
 
-echo [9/18] Limpando Logs CBS...
-del /f /s /q "%windir%\Logs\CBS\*.*" 2>nul
+:defender
+if exist "%ProgramFiles%\Windows Defender\MpCmdRun.exe" (
+ "%ProgramFiles%\Windows Defender\MpCmdRun.exe" -RemoveDefinitions -DynamicSignatures
+)
+exit /b
 
-echo [10/18] Limpando Logs DISM...
-del /f /s /q "%windir%\Logs\DISM\*.*" 2>nul
-
-:: ----------------------------------------------------------
-:: RELATORIOS DE ERRO
-:: ----------------------------------------------------------
-
-echo [11/18] Limpando Crash Dumps...
-rd /s /q "%LOCALAPPDATA%\CrashDumps" 2>nul
-mkdir "%LOCALAPPDATA%\CrashDumps"
-
-echo [12/18] Limpando Windows Error Reporting...
-rd /s /q "%ProgramData%\Microsoft\Windows\WER" 2>nul
-mkdir "%ProgramData%\Microsoft\Windows\WER"
-
-rd /s /q "%LOCALAPPDATA%\Microsoft\Windows\WER" 2>nul
-mkdir "%LOCALAPPDATA%\Microsoft\Windows\WER"
-
-:: ----------------------------------------------------------
-:: MINIATURAS
-:: ----------------------------------------------------------
-
-echo [13/18] Limpando Cache de Miniaturas...
-del /f /q "%LOCALAPPDATA%\Microsoft\Windows\Explorer\thumbcache_*.db" 2>nul
-del /f /q "%LOCALAPPDATA%\Microsoft\Windows\Explorer\iconcache_*.db" 2>nul
-
-:: ----------------------------------------------------------
-:: DIRECTX
-:: ----------------------------------------------------------
-
-echo [14/18] Limpando Cache DirectX...
-rd /s /q "%LOCALAPPDATA%\D3DSCache" 2>nul
-mkdir "%LOCALAPPDATA%\D3DSCache"
-
-:: ----------------------------------------------------------
-:: LIXEIRA
-:: ----------------------------------------------------------
-
-echo [15/18] Esvaziando Lixeira...
-PowerShell -NoProfile -ExecutionPolicy Bypass -Command "Clear-RecycleBin -Force" >nul 2>&1
-
-:: ----------------------------------------------------------
-:: MICROSOFT STORE
-:: ----------------------------------------------------------
-
-echo [16/18] Limpando Cache da Microsoft Store...
-start /wait wsreset.exe
-
-:: ----------------------------------------------------------
-:: COMPONENTES ANTIGOS
-:: ----------------------------------------------------------
-
-echo [17/18] Limpando Componentes Antigos do Windows...
-DISM /Online /Cleanup-Image /StartComponentCleanup
-
-:: ----------------------------------------------------------
-:: CLEANMGR
-:: ----------------------------------------------------------
-
-echo [18/18] Abrindo Limpeza de Disco...
-start "" cleanmgr.exe
-
+:fim
 echo.
-echo ==========================================================
-echo             LIMPEZA CONCLUIDA COM SUCESSO!
-echo ==========================================================
-echo.
+echo Limpeza concluida.
 pause
-exit
