@@ -26,8 +26,6 @@ if %errorlevel% neq 0 (
     exit
 )
 
-set LOG=%USERPROFILE%\Desktop\Limpeza_Log.txt
-echo Limpeza iniciada em %date% %time% > "%LOG%"
 
 echo Dica: feche o navegador (Chrome/Edge/Firefox) e apps como
 echo Discord, Slack, Teams e Spotify antes de continuar, para que
